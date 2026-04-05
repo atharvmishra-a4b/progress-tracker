@@ -1,0 +1,798 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Progress Tracker</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container": "#1a1919",
+                        "on-surface-variant": "#adaaaa",
+                        "surface-variant": "#262626",
+                        "on-primary": "#002c67",
+                        "outline": "#777575",
+                        "surface-container-high": "#201f1f",
+                        "primary-fixed": "#6f9fff",
+                        "on-surface": "#ffffff",
+                        "secondary-fixed": "#69f6b8",
+                        "error": "#ff716c",
+                        "on-secondary-container": "#e1ffec",
+                        "surface-dim": "#0e0e0e",
+                        "secondary-dim": "#58e7ab",
+                        "primary-fixed-dim": "#5690ff",
+                        "secondary-container": "#006c49",
+                        "primary": "#87adff",
+                        "tertiary-fixed": "#fba1ff",
+                        "primary-dim": "#006ff0",
+                        "on-background": "#ffffff",
+                        "surface": "#0e0e0e",
+                        "background": "#0e0e0e",
+                        "on-secondary": "#005a3c",
+                        "outline-variant": "#494847",
+                        "on-error": "#490006",
+                        "surface-container-low": "#131313",
+                        "surface-tint": "#87adff",
+                        "surface-container-highest": "#262626",
+                        "inverse-surface": "#fcf8f8",
+                        "surface-bright": "#2c2c2c",
+                        "error-dim": "#d7383b"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .glass-panel { background: rgba(38, 38, 38, 0.6); backdrop-filter: blur(20px); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface selection:bg-primary/30">
+<div class="flex min-h-screen">
+    <!-- Sidebar -->
+    <aside class="hidden md:flex flex-col h-screen w-64 border-r border-[#262626]/20 bg-[#0e0e0e] font-inter tracking-tight text-sm py-6 sticky top-0">
+        <div class="px-6 mb-10">
+            <h1 class="text-xl font-bold text-white tracking-tighter">Progress Tracker</h1>
+        </div>
+        <nav class="flex-1 space-y-1 px-3">
+            <a class="flex items-center gap-3 px-3 py-2 text-[#adaaaa] hover:text-white hover:bg-[#1a1919] transition-colors duration-200 rounded-xl scale-98 active:opacity-80" href="/index.html">
+                <span class="material-symbols-outlined">analytics</span>
+                <span>GitHub Analytics</span>
+            </a>
+            <a class="flex items-center gap-3 px-3 py-2 text-white font-semibold border-r-2 border-[#0070F3] bg-[#1a1919] rounded-l-xl scale-98 active:opacity-80" href="/jira.html">
+                <span class="material-symbols-outlined">integration_instructions</span>
+                <span>Jira Analytics</span>
+            </a>
+        </nav>
+        <div class="px-6 mt-auto">
+            <div class="flex items-center gap-3 p-2 bg-surface-container-low rounded-xl">
+                <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm" id="userInitials">
+                    AR
+                </div>
+                <div class="overflow-hidden">
+                    <p class="text-xs font-bold text-white truncate" id="userName">Searching ....</p>
+                    <p class="text-[10px] text-on-surface-variant truncate">Developer</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 bg-surface overflow-x-hidden">
+        <!-- Top Navigation -->
+        <header class="flex justify-between items-center w-full px-8 py-4 sticky top-0 z-50 bg-[#0e0e0e]/60 backdrop-blur-md shadow-[0_48px_48px_rgba(0,112,243,0.12)]">
+            <div class="flex items-center gap-6">
+                <h2 class="text-lg font-bold text-white font-inter">Jira Analytics</h2>
+                <!-- Filters -->
+                <div class="hidden lg:flex items-center gap-3">
+                    <div class="relative group">
+                        <select id="projectSelect" onchange="updateFilters()" class="flex items-center gap-2 bg-surface-container-low px-4 py-1.5 rounded-xl border border-outline-variant/15 text-xs text-on-surface hover:bg-surface-container transition-all appearance-none pr-8 cursor-pointer">
+                            <option value="ALL">All Projects</option>
+                        </select>
+                        <span class="material-symbols-outlined text-sm absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant">expand_more</span>
+                    </div>
+                    <div class="relative group">
+                        <select id="statusSelect" onchange="renderCharts()" class="flex items-center gap-2 bg-surface-container-low px-4 py-1.5 rounded-xl border border-outline-variant/15 text-xs text-on-surface hover:bg-surface-container transition-all appearance-none pr-8 cursor-pointer">
+                            <option value="ALL">All Statuses</option>
+                        </select>
+                        <span class="material-symbols-outlined text-sm absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant">expand_more</span>
+                    </div>
+                    <div class="relative group">
+                        <select id="typeSelect" onchange="renderCharts()" class="flex items-center gap-2 bg-surface-container-low px-4 py-1.5 rounded-xl border border-outline-variant/15 text-xs text-on-surface hover:bg-surface-container transition-all appearance-none pr-8 cursor-pointer">
+                            <option value="ALL">All Types</option>
+                        </select>
+                        <span class="material-symbols-outlined text-sm absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant">expand_more</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <div class="px-8 py-8">
+            <!-- Loading State -->
+            <div id="loadingState" class="flex flex-col items-center justify-center py-20">
+                <div class="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4"></div>
+                <p class="text-on-surface-variant text-sm">Loading Jira Analytics...</p>
+            </div>
+
+            <!-- Stats Grid -->
+            <div id="statsContainer" class="hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <!-- Total Issues -->
+                    <div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10 hover:border-primary/20 transition-all">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Total Issues</span>
+                            <span class="material-symbols-outlined text-primary">assignment</span>
+                        </div>
+                        <div class="flex items-end gap-2">
+                            <span id="totalIssues" class="text-3xl font-bold text-white">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Done Issues -->
+                    <div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10 hover:border-secondary/20 transition-all">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Done</span>
+                            <span class="material-symbols-outlined text-secondary">check_circle</span>
+                        </div>
+                        <div class="flex items-end gap-2">
+                            <span id="doneIssues" class="text-3xl font-bold text-white">0</span>
+                        </div>
+                    </div>
+
+                    <!-- In Progress -->
+                    <div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10 hover:border-tertiary-fixed/20 transition-all">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">In Progress</span>
+                            <span class="material-symbols-outlined text-tertiary-fixed">progress_activity</span>
+                        </div>
+                        <div class="flex items-end gap-2">
+                            <span id="inProgressIssues" class="text-3xl font-bold text-white">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Bug Count -->
+                    <div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10 hover:border-error/20 transition-all">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Bugs</span>
+                            <span class="material-symbols-outlined text-error">bug_report</span>
+                        </div>
+                        <div class="flex items-end gap-2">
+                            <span id="bugCount" class="text-3xl font-bold text-white">0</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <!-- Status Distribution -->
+                    <div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10">
+                        <div class="flex items-center justify-between mb-6">
+                            <h4 class="text-sm font-bold text-white">Status Distribution</h4>
+                        </div>
+                        <div class="relative h-64">
+                            <canvas id="statusChart"></canvas>
+                        </div>
+                        <div id="statusLegend" class="mt-6 space-y-2"></div>
+                    </div>
+
+                    <!-- Issue Type Breakdown -->
+                    <div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10">
+                        <div class="flex items-center justify-between mb-6">
+                            <h4 class="text-sm font-bold text-white">Issue Type Breakdown</h4>
+                            <div class="flex gap-2">
+                            </div>
+                        </div>
+                        <div class="relative h-64">
+                            <canvas id="typeChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Project & Priority Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <!-- Issues by Project -->
+                    <div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10">
+                        <div class="flex items-center justify-between mb-6">
+                            <h4 class="text-sm font-bold text-white">Issues by Project</h4>
+                        </div>
+                        <div class="relative h-64">
+                            <canvas id="projectChart"></canvas>
+                        </div>
+                    </div>
+
+                    <!-- Priority Distribution -->
+                    <div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10">
+                        <div class="flex items-center justify-between mb-6">
+                            <h4 class="text-sm font-bold text-white">Priority Distribution</h4>
+                        </div>
+                        <div class="relative h-64">
+                            <canvas id="priorityChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity & Insights -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Recent Issues -->
+                    <div class="lg:col-span-2 bg-surface-container-low p-6 rounded-xl border border-outline-variant/10">
+                        <h4 class="text-sm font-bold text-white mb-6">Recent Issues</h4>
+                        <div id="recentIssues" class="space-y-3">
+                            <!-- Will be populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Developer Insights -->
+                    <div class="bg-surface-container-highest/40 p-6 rounded-xl border border-primary/10 relative overflow-hidden group">
+                        <div class="absolute -top-24 -right-24 w-48 h-48 bg-primary/10 blur-[64px] group-hover:bg-primary/20 transition-all duration-700"></div>
+                        <h4 class="text-sm font-bold text-white mb-6 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-secondary">auto_awesome</span>
+                            Insights
+                        </h4>
+                        <div class="space-y-6">
+                            <div class="flex gap-4">
+                                <div class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-primary shrink-0">
+                                    <span class="material-symbols-outlined">folder</span>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] text-on-surface-variant uppercase tracking-wider font-bold">Most Active Project</p>
+                                    <p id="mostActiveProject" class="text-sm font-semibold text-white">-</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-4">
+                                <div class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-secondary shrink-0">
+                                    <span class="material-symbols-outlined">category</span>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] text-on-surface-variant uppercase tracking-wider font-bold">Common Issue Type</p>
+                                    <p id="commonIssueType" class="text-sm font-semibold text-white">-</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-4">
+                                <div class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-error shrink-0">
+                                    <span class="material-symbols-outlined">bug_report</span>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] text-on-surface-variant uppercase tracking-wider font-bold">Bug Ratio</p>
+                                    <p id="bugRatio" class="text-sm font-semibold text-white">-</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-4">
+                                <div class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-primary-fixed shrink-0">
+                                    <span class="material-symbols-outlined">verified</span>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] text-on-surface-variant uppercase tracking-wider font-bold">Completion Rate</p>
+                                    <p id="completionRate" class="text-sm font-semibold text-white">-</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-8 pt-6 border-t border-outline-variant/10">
+                            <button class="w-full py-2.5 px-4 bg-gradient-to-br from-primary to-primary-dim rounded-xl text-xs font-bold text-white shadow-lg hover:brightness-110 active:scale-[0.98] transition-all">
+                                Export Full Report
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Mobile Navigation -->
+<nav class="md:hidden fixed bottom-0 left-0 right-0 glass-panel border-t border-outline-variant/10 flex justify-around items-center py-3 px-6 z-[60]">
+    <a class="flex flex-col items-center gap-1 text-on-surface-variant" href="/index.html">
+        <span class="material-symbols-outlined">analytics</span>
+        <span class="text-[10px]">GitHub</span>
+    </a>
+    <a class="flex flex-col items-center gap-1 text-white" href="/jira.html">
+        <span class="material-symbols-outlined">integration_instructions</span>
+        <span class="text-[10px] font-bold">Jira</span>
+    </a>
+</nav>
+
+<script>
+let allIssues = [];
+let statusChartInstance, typeChartInstance, projectChartInstance, priorityChartInstance;
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// Status color mapping
+const statusColors = {
+    'Done': '#58e7ab',
+    'Closed': '#adaaaa',
+    'Verified': '#69f6b8',
+    'In Development': '#5690ff',
+    'Available on Sandbox': '#87adff',
+    'default': '#777575'
+};
+
+// Type color mapping
+const typeColors = {
+    'Story': '#5690ff',
+    'Bug': '#ff716c',
+    'Task': '#fba1ff',
+    'Sub-task': '#adaaaa',
+    'default': '#777575'
+};
+
+// Priority color mapping
+const priorityColors = {
+    'Highest': '#ff716c',
+    'High': '#ff9800',
+    'Medium': '#fba1ff',
+    'Low': '#58e7ab',
+    'Lowest': '#adaaaa',
+    'default': '#777575'
+};
+
+// Load data on page load
+window.addEventListener('DOMContentLoaded', loadData);
+
+async function loadData() {
+    try {
+        const res = await fetch('/jira/stats');
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({ error: `Server error ${res.status}` }));
+            throw new Error(errData.error || `Server error ${res.status}`);
+        }
+        const data = await res.json();
+
+        allIssues = data.data.user.issues;
+
+        // Extract and update user info
+        const email = data.data.user.email;
+        updateUserProfile(email);
+
+        // Hide loading, show content
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('statsContainer').classList.remove('hidden');
+
+        populateFilters();
+        updateStats();
+        renderCharts();
+        updateInsights();
+        updateRecentIssues();
+    } catch (error) {
+        console.error('Error loading data:', error);
+        const safeMessage = escapeHtml(error?.message || 'Unknown error');
+        document.getElementById('loadingState').innerHTML = `
+            <div class="text-center">
+                <span class="material-symbols-outlined text-6xl text-error mb-4">error</span>
+                <p class="text-error text-sm">Failed to load Jira Analytics</p>
+                <p class="text-on-surface-variant text-xs mt-2">${safeMessage}</p>
+                <button onclick="loadData()" class="mt-4 px-6 py-2 bg-primary rounded-xl text-xs font-bold text-white hover:brightness-110 transition-all">
+                    Retry
+                </button>
+            </div>
+        `;
+    }
+}
+
+function updateUserProfile(email) {
+    // Extract username from email
+    const username = email.split('@')[0];
+    document.getElementById('userName').textContent = username;
+    
+    // Generate initials
+    const initials = username
+        .split(/[\.-_]/)
+        .map(part => part[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+    
+    document.getElementById('userInitials').textContent = initials;
+}
+
+function populateFilters() {
+    // Populate projects
+    const projects = new Set();
+    allIssues.forEach(issue => projects.add(issue.fields.project.key));
+    
+    const projectSelect = document.getElementById('projectSelect');
+    projectSelect.innerHTML = '<option value="ALL">All Projects</option>';
+    projects.forEach(project => {
+        const option = document.createElement('option');
+        option.value = project;
+        option.textContent = project;
+        projectSelect.appendChild(option);
+    });
+
+    // Populate statuses
+    const statuses = new Set();
+    allIssues.forEach(issue => statuses.add(issue.fields.status.name));
+    
+    const statusSelect = document.getElementById('statusSelect');
+    statusSelect.innerHTML = '<option value="ALL">All Statuses</option>';
+    statuses.forEach(status => {
+        const option = document.createElement('option');
+        option.value = status;
+        option.textContent = status;
+        statusSelect.appendChild(option);
+    });
+
+    // Populate types
+    const types = new Set();
+    allIssues.forEach(issue => types.add(issue.fields.issuetype.name));
+    
+    const typeSelect = document.getElementById('typeSelect');
+    typeSelect.innerHTML = '<option value="ALL">All Types</option>';
+    types.forEach(type => {
+        const option = document.createElement('option');
+        option.value = type;
+        option.textContent = type;
+        typeSelect.appendChild(option);
+    });
+}
+
+function updateFilters() {
+    renderCharts();
+    updateStats();
+    updateInsights();
+    updateRecentIssues();
+}
+
+function getFilteredIssues() {
+    const selectedProject = document.getElementById('projectSelect').value;
+    const selectedStatus = document.getElementById('statusSelect').value;
+    const selectedType = document.getElementById('typeSelect').value;
+
+    return allIssues.filter(issue => {
+        const projectMatch = selectedProject === 'ALL' || issue.fields.project.key === selectedProject;
+        const statusMatch = selectedStatus === 'ALL' || issue.fields.status.name === selectedStatus;
+        const typeMatch = selectedType === 'ALL' || issue.fields.issuetype.name === selectedType;
+        return projectMatch && statusMatch && typeMatch;
+    });
+}
+
+function updateStats() {
+    const issues = getFilteredIssues();
+    const total = issues.length;
+    
+    let done = 0, inProgress = 0, bugs = 0;
+    
+    issues.forEach(issue => {
+        const status = issue.fields.status.name.toLowerCase();
+        const type = issue.fields.issuetype.name;
+        
+        if (status.includes('done') || status.includes('closed') || status.includes('verified')) {
+            done++;
+        } else if (status.includes('progress') || status.includes('development')) {
+            inProgress++;
+        }
+        
+        if (type === 'Bug') bugs++;
+    });
+
+    document.getElementById('totalIssues').textContent = total;
+    document.getElementById('doneIssues').textContent = done;
+    document.getElementById('inProgressIssues').textContent = inProgress;
+    document.getElementById('bugCount').textContent = bugs;
+}
+
+function renderCharts() {
+    const issues = getFilteredIssues();
+    
+    // Status Distribution
+    renderStatusChart(issues);
+    
+    // Type Breakdown
+    renderTypeChart(issues);
+    
+    // Project Distribution
+    renderProjectChart(issues);
+    
+    // Priority Distribution
+    renderPriorityChart(issues);
+}
+
+function renderStatusChart(issues) {
+    const statusCount = {};
+    issues.forEach(issue => {
+        const status = issue.fields.status.name;
+        statusCount[status] = (statusCount[status] || 0) + 1;
+    });
+
+    if (statusChartInstance) statusChartInstance.destroy();
+    
+    const colors = Object.keys(statusCount).map(status => statusColors[status] || statusColors.default);
+    
+    const ctx = document.getElementById('statusChart').getContext('2d');
+    statusChartInstance = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+            labels: Object.keys(statusCount),
+            datasets: [{
+                data: Object.values(statusCount),
+                backgroundColor: colors,
+                borderWidth: 0,
+                cutout: '70%'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1a1919',
+                    titleColor: '#ffffff',
+                    bodyColor: '#adaaaa',
+                    borderColor: '#262626',
+                    borderWidth: 1,
+                    padding: 12,
+                    displayColors: false
+                }
+            }
+        }
+    });
+
+    // Update legend
+    const total = issues.length;
+    const legendHTML = Object.entries(statusCount).map(([status, count]) => `
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full" style="background-color: ${statusColors[status] || statusColors.default}"></div>
+                <span class="text-xs text-on-surface-variant">${escapeHtml(status)}</span>
+            </div>
+            <span class="text-xs font-bold text-white">${((count/total)*100).toFixed(0)}%</span>
+        </div>
+    `).join('');
+    document.getElementById('statusLegend').innerHTML = legendHTML;
+}
+
+function renderTypeChart(issues) {
+    const typeCount = {};
+    issues.forEach(issue => {
+        const type = issue.fields.issuetype.name;
+        typeCount[type] = (typeCount[type] || 0) + 1;
+    });
+
+    if (typeChartInstance) typeChartInstance.destroy();
+    
+    const colors = Object.keys(typeCount).map(type => typeColors[type] || typeColors.default);
+    
+    const ctx = document.getElementById('typeChart').getContext('2d');
+    typeChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(typeCount),
+            datasets: [{
+                data: Object.values(typeCount),
+                backgroundColor: colors,
+                borderRadius: 6,
+                barThickness: 40
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1a1919',
+                    titleColor: '#ffffff',
+                    bodyColor: '#adaaaa',
+                    borderColor: '#262626',
+                    borderWidth: 1,
+                    padding: 12
+                }
+            },
+            scales: {
+                y: {
+                    beginAtZero: true,
+                    grid: { color: '#262626', drawBorder: false },
+                    ticks: { color: '#adaaaa', font: { size: 10 } }
+                },
+                x: {
+                    grid: { display: false },
+                    ticks: { color: '#ffffff', font: { size: 11, weight: '500' } }
+                }
+            }
+        }
+    });
+}
+
+function renderProjectChart(issues) {
+    const projectCount = {};
+    issues.forEach(issue => {
+        const project = issue.fields.project.key;
+        projectCount[project] = (projectCount[project] || 0) + 1;
+    });
+
+    if (projectChartInstance) projectChartInstance.destroy();
+    
+    const ctx = document.getElementById('projectChart').getContext('2d');
+    projectChartInstance = new Chart(ctx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(projectCount),
+            datasets: [{
+                label: 'Issues',
+                data: Object.values(projectCount),
+                backgroundColor: '#5690ff',
+                borderRadius: 6,
+                barThickness: 30
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1a1919',
+                    titleColor: '#ffffff',
+                    bodyColor: '#adaaaa',
+                    borderColor: '#262626',
+                    borderWidth: 1,
+                    padding: 12
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: '#262626', drawBorder: false },
+                    ticks: { color: '#adaaaa', font: { size: 10 } }
+                },
+                y: {
+                    grid: { display: false },
+                    ticks: { color: '#ffffff', font: { size: 11, weight: '500' } }
+                }
+            }
+        }
+    });
+}
+
+function renderPriorityChart(issues) {
+    const priorityCount = {};
+    issues.forEach(issue => {
+        const priority = issue.fields.priority?.name || 'None';
+        priorityCount[priority] = (priorityCount[priority] || 0) + 1;
+    });
+
+    if (priorityChartInstance) priorityChartInstance.destroy();
+    
+    const colors = Object.keys(priorityCount).map(priority => priorityColors[priority] || priorityColors.default);
+    
+    const ctx = document.getElementById('priorityChart').getContext('2d');
+    priorityChartInstance = new Chart(ctx, {
+        type: 'pie',
+        data: {
+            labels: Object.keys(priorityCount),
+            datasets: [{
+                data: Object.values(priorityCount),
+                backgroundColor: colors,
+                borderWidth: 0
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: {
+                    position: 'bottom',
+                    labels: {
+                        color: '#ffffff',
+                        font: { size: 11 },
+                        padding: 10,
+                        usePointStyle: true
+                    }
+                },
+                tooltip: {
+                    backgroundColor: '#1a1919',
+                    titleColor: '#ffffff',
+                    bodyColor: '#adaaaa',
+                    borderColor: '#262626',
+                    borderWidth: 1,
+                    padding: 12
+                }
+            }
+        }
+    });
+}
+
+function updateInsights() {
+    const issues = getFilteredIssues();
+    
+    // Most active project
+    const projectCount = {};
+    issues.forEach(issue => {
+        const project = issue.fields.project.key;
+        projectCount[project] = (projectCount[project] || 0) + 1;
+    });
+    const mostActiveProject = Object.keys(projectCount).sort((a, b) => projectCount[b] - projectCount[a])[0] || '-';
+    document.getElementById('mostActiveProject').textContent = mostActiveProject;
+
+    // Common issue type
+    const typeCount = {};
+    issues.forEach(issue => {
+        const type = issue.fields.issuetype.name;
+        typeCount[type] = (typeCount[type] || 0) + 1;
+    });
+    const commonIssueType = Object.keys(typeCount).sort((a, b) => typeCount[b] - typeCount[a])[0] || '-';
+    document.getElementById('commonIssueType').textContent = commonIssueType;
+
+    // Bug ratio
+    const bugs = issues.filter(i => i.fields.issuetype.name === 'Bug').length;
+    const bugRatio = issues.length > 0 ? ((bugs / issues.length) * 100).toFixed(1) + '%' : '-';
+    document.getElementById('bugRatio').textContent = bugRatio;
+
+    // Completion rate
+    const done = issues.filter(i => {
+        const status = i.fields.status.name.toLowerCase();
+        return status.includes('done') || status.includes('closed') || status.includes('verified');
+    }).length;
+    const completionRate = issues.length > 0 ? ((done / issues.length) * 100).toFixed(1) + '%' : '-';
+    document.getElementById('completionRate').textContent = completionRate;
+}
+
+function updateRecentIssues() {
+    const issues = getFilteredIssues().slice(0, 8);
+    
+    const html = issues.map(issue => {
+        const typeIcon = {
+            'Story': 'book',
+            'Bug': 'bug_report',
+            'Task': 'task_alt',
+            'Sub-task': 'subdirectory_arrow_right'
+        }[issue.fields.issuetype.name] || 'assignment';
+        
+        const typeColor = typeColors[issue.fields.issuetype.name] || typeColors.default;
+        const statusColor = statusColors[issue.fields.status.name] || statusColors.default;
+        const safeKey = escapeHtml(issue.key);
+        const safeStatus = escapeHtml(issue.fields.status.name);
+        const safeSummary = escapeHtml(issue.fields.summary);
+        const safeIssueType = escapeHtml(issue.fields.issuetype.name);
+        
+        return `
+            <div class="flex items-center gap-4 p-3 bg-surface-container-high/50 rounded-lg hover:bg-surface-container-high transition-all group">
+                <div class="w-8 h-8 rounded-lg flex items-center justify-center shrink-0" style="background-color: ${typeColor}20; color: ${typeColor}">
+                    <span class="material-symbols-outlined text-sm">${typeIcon}</span>
+                </div>
+                <div class="flex-1 min-w-0">
+                    <div class="flex items-center gap-2 mb-1">
+                        <span class="text-xs font-mono text-primary">${safeKey}</span>
+                        <span class="px-2 py-0.5 rounded text-[10px] font-semibold" style="background-color: ${statusColor}20; color: ${statusColor}">${safeStatus}</span>
+                    </div>
+                    <p class="text-xs text-white truncate">${safeSummary}</p>
+                </div>
+                <span class="text-[10px] text-on-surface-variant shrink-0">${safeIssueType}</span>
+            </div>
+        `;
+    }).join('');
+
+    document.getElementById('recentIssues').innerHTML = html || '<p class="text-xs text-on-surface-variant">No issues found</p>';
+}
+</script>
+
+</body>
+</html>

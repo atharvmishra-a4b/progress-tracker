@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html class="dark" lang="en">
+<head>
+    <meta charset="utf-8"/>
+    <meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+    <title>Progress Tracker</title>
+    <script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet"/>
+    <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&display=swap" rel="stylesheet"/>
+    <script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container": "#1a1919",
+                        "on-surface-variant": "#adaaaa",
+                        "surface-variant": "#262626",
+                        "on-primary": "#002c67",
+                        "outline": "#777575",
+                        "surface-container-high": "#201f1f",
+                        "primary-fixed": "#6f9fff",
+                        "on-surface": "#ffffff",
+                        "secondary-fixed": "#69f6b8",
+                        "error": "#ff716c",
+                        "on-secondary-container": "#e1ffec",
+                        "surface-dim": "#0e0e0e",
+                        "secondary-dim": "#58e7ab",
+                        "primary-fixed-dim": "#5690ff",
+                        "secondary-container": "#006c49",
+                        "primary": "#87adff",
+                        "tertiary-fixed": "#fba1ff",
+                        "primary-dim": "#006ff0",
+                        "on-background": "#ffffff",
+                        "surface": "#0e0e0e",
+                        "background": "#0e0e0e",
+                        "on-secondary": "#005a3c",
+                        "outline-variant": "#494847",
+                        "on-error": "#490006",
+                        "surface-container-low": "#131313",
+                        "surface-tint": "#87adff",
+                        "surface-container-highest": "#262626",
+                        "inverse-surface": "#fcf8f8",
+                        "surface-bright": "#2c2c2c",
+                        "error-dim": "#d7383b"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "fontFamily": {
+                        "headline": ["Inter"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    }
+                },
+            },
+        }
+    </script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .material-symbols-outlined { font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24; }
+        .glass-panel { background: rgba(38, 38, 38, 0.6); backdrop-filter: blur(20px); }
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+    </style>
+</head>
+<body class="bg-surface text-on-surface selection:bg-primary/30">
+<div class="flex min-h-screen">
+    <!-- Sidebar -->
+    <aside class="hidden md:flex flex-col h-screen w-64 border-r border-[#262626]/20 bg-[#0e0e0e] font-inter tracking-tight text-sm py-6 sticky top-0">
+        <div class="px-6 mb-10">
+            <h1 class="text-xl font-bold text-white tracking-tighter">Progress Tracker</h1>
+        </div>
+        <nav class="flex-1 space-y-1 px-3">
+            <a class="flex items-center gap-3 px-3 py-2 text-white font-semibold border-r-2 border-[#0070F3] bg-[#1a1919] rounded-l-xl scale-98 active:opacity-80" href="/index.html">
+                <span class="material-symbols-outlined">analytics</span>
+                <span>GitHub Analytics</span>
+            </a>
+            <a class="flex items-center gap-3 px-3 py-2 text-[#adaaaa] hover:text-white hover:bg-[#1a1919] transition-colors duration-200 rounded-xl scale-98 active:opacity-80" href="/jira.html">
+                <span class="material-symbols-outlined">integration_instructions</span>
+                <span>Jira Analytics</span>
+            </a>
+        </nav>
+        <div class="px-6 mt-auto">
+            <div class="flex items-center gap-3 p-2 bg-surface-container-low rounded-xl">
+                <div class="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-primary font-bold text-sm" id="userInitials">
+                    AR
+                </div>
+                <div class="overflow-hidden">
+                    <p class="text-xs font-bold text-white truncate" id="userName">Searching .... </p>
+                    <p class="text-[10px] text-on-surface-variant truncate">Developer</p>
+                </div>
+            </div>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="flex-1 bg-surface overflow-x-hidden">
+        <!-- Top Navigation -->
+        <header class="flex justify-between items-center w-full px-8 py-4 sticky top-0 z-50 bg-[#0e0e0e]/60 backdrop-blur-md shadow-[0_48px_48px_rgba(0,112,243,0.12)]">
+            <div class="flex items-center gap-6">
+                <h2 class="text-lg font-bold text-white font-inter">GitHub Analytics</h2>
+                <!-- Filters -->
+                <div class="hidden lg:flex items-center gap-3">
+                    <div class="relative group">
+                        <select id="repoSelect" onchange="updateBranches()" class="flex items-center gap-2 bg-surface-container-low px-4 py-1.5 rounded-xl border border-outline-variant/15 text-xs text-on-surface hover:bg-surface-container transition-all appearance-none pr-8 cursor-pointer">
+                            <option value="ALL">All Repositories</option>
+                        </select>
+                        <span class="material-symbols-outlined text-sm absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant">expand_more</span>
+                    </div>
+                    <div class="relative group">
+                        <select id="branchSelect" onchange="renderCharts()" class="flex items-center gap-2 bg-surface-container-low px-4 py-1.5 rounded-xl border border-outline-variant/15 text-xs text-on-surface hover:bg-surface-container transition-all appearance-none pr-8 cursor-pointer">
+                            <option value="ALL">All Branches</option>
+                        </select>
+                        <span class="material-symbols-outlined text-sm absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none text-on-surface-variant">expand_more</span>
+                    </div>
+                </div>
+            </div>
+        </header>
+
+        <!-- Content -->
+        <div class="px-8 py-8">
+            <!-- Loading State -->
+            <div id="loadingState" class="flex flex-col items-center justify-center py-20">
+                <div class="w-16 h-16 border-4 border-primary/20 border-t-primary rounded-full animate-spin mb-4"></div>
+                <p class="text-on-surface-variant text-sm">Loading GitHub Analytics...</p>
+            </div>
+
+            <!-- Stats Grid -->
+            <div id="statsContainer" class="hidden">
+                <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+                    <!-- Total PRs -->
+                    <div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10 hover:border-primary/20 transition-all">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Total PRs</span>
+                            <span class="material-symbols-outlined text-primary">merge</span>
+                        </div>
+                        <div class="flex items-end gap-2">
+                            <span id="totalPRs" class="text-3xl font-bold text-white">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Merged PRs -->
+                    <div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10 hover:border-secondary/20 transition-all">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Merged PRs</span>
+                            <span class="material-symbols-outlined text-secondary">check_circle</span>
+                        </div>
+                        <div class="flex items-end gap-2">
+                            <span id="mergedPRs" class="text-3xl font-bold text-white">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Open PRs -->
+                    <div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10 hover:border-error/20 transition-all">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Open PRs</span>
+                            <span class="material-symbols-outlined text-primary-fixed">radio_button_checked</span>
+                        </div>
+                        <div class="flex items-end gap-2">
+                            <span id="openPRs" class="text-3xl font-bold text-white">0</span>
+                        </div>
+                    </div>
+
+                    <!-- Merge Rate -->
+                    <div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10 hover:border-primary-fixed/20 transition-all">
+                        <div class="flex items-center justify-between mb-2">
+                            <span class="text-xs font-bold text-on-surface-variant uppercase tracking-wider">Merge Rate</span>
+                            <span class="material-symbols-outlined text-tertiary-fixed">percent</span>
+                        </div>
+                        <div class="flex items-end gap-2">
+                            <span id="mergeRate" class="text-3xl font-bold text-white">0%</span>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Charts Grid -->
+                <div class="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
+                    <!-- PR Status Distribution -->
+                    <div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10">
+                        <div class="flex items-center justify-between mb-6">
+                            <h4 class="text-sm font-bold text-white">PR Status Distribution</h4>
+
+                        </div>
+                        <div class="relative h-64">
+                            <canvas id="statusChart"></canvas>
+                        </div>
+                        <div id="statusLegend" class="mt-6 space-y-2"></div>
+                    </div>
+
+                    <!-- PRs by Repository -->
+                    <div class="bg-surface-container-low p-6 rounded-xl border border-outline-variant/10">
+                        <div class="flex items-center justify-between mb-6">
+                            <h4 class="text-sm font-bold text-white">PRs by Repository</h4>
+                        </div>
+                        <div class="relative h-64">
+                            <canvas id="repoChart"></canvas>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Activity Timeline & Insights -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <!-- Branch Activity -->
+                    <div class="lg:col-span-2 bg-surface-container-low p-6 rounded-xl border border-outline-variant/10">
+                        <h4 class="text-sm font-bold text-white mb-6">Branch Activity</h4>
+                        <div id="branchActivity" class="space-y-4">
+                            <!-- Will be populated dynamically -->
+                        </div>
+                    </div>
+
+                    <!-- Developer Insights -->
+                    <div class="bg-surface-container-highest/40 p-6 rounded-xl border border-primary/10 relative overflow-hidden group">
+                        <div class="absolute -top-24 -right-24 w-48 h-48 bg-primary/10 blur-[64px] group-hover:bg-primary/20 transition-all duration-700"></div>
+                        <h4 class="text-sm font-bold text-white mb-6 flex items-center gap-2">
+                            <span class="material-symbols-outlined text-secondary">auto_awesome</span>
+                            Developer Insights
+                        </h4>
+                        <div class="space-y-6">
+                            <div class="flex gap-4">
+                                <div class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-primary shrink-0">
+                                    <span class="material-symbols-outlined">rocket_launch</span>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] text-on-surface-variant uppercase tracking-wider font-bold">Most Active Repository</p>
+                                    <p id="mostActiveRepo" class="text-sm font-semibold text-white">-</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-4">
+                                <div class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-secondary shrink-0">
+                                    <span class="material-symbols-outlined">fork_right</span>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] text-on-surface-variant uppercase tracking-wider font-bold">Most Active Branch</p>
+                                    <p id="mostActiveBranch" class="text-sm font-semibold text-white">-</p>
+                                </div>
+                            </div>
+                            <div class="flex gap-4">
+                                <div class="w-10 h-10 rounded-xl bg-surface-container flex items-center justify-center text-primary-fixed shrink-0">
+                                    <span class="material-symbols-outlined">verified</span>
+                                </div>
+                                <div>
+                                    <p class="text-[10px] text-on-surface-variant uppercase tracking-wider font-bold">Merge Success Rate</p>
+                                    <p id="mergeSuccessRate" class="text-sm font-semibold text-white">-</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="mt-8 pt-6 border-t border-outline-variant/10">
+                            <button class="w-full py-2.5 px-4 bg-gradient-to-br from-primary to-primary-dim rounded-xl text-xs font-bold text-white shadow-lg hover:brightness-110 active:scale-[0.98] transition-all">
+                                Export Full Report
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+</div>
+
+<!-- Mobile Navigation -->
+<nav class="md:hidden fixed bottom-0 left-0 right-0 glass-panel border-t border-outline-variant/10 flex justify-around items-center py-3 px-6 z-[60]">
+    <a class="flex flex-col items-center gap-1 text-on-surface-variant" href="#">
+        <span class="material-symbols-outlined">dashboard</span>
+        <span class="text-[10px]">Dashboard</span>
+    </a>
+    <a class="flex flex-col items-center gap-1 text-white" href="/index.html">
+        <span class="material-symbols-outlined">analytics</span>
+        <span class="text-[10px] font-bold">GitHub</span>
+    </a>
+    <a class="flex flex-col items-center gap-1 text-on-surface-variant" href="/jira.html">
+        <span class="material-symbols-outlined">integration_instructions</span>
+        <span class="text-[10px]">Jira</span>
+    </a>
+    <a class="flex flex-col items-center gap-1 text-on-surface-variant" href="#">
+        <span class="material-symbols-outlined">settings</span>
+        <span class="text-[10px]">Settings</span>
+    </a>
+</nav>
+
+<script>
+let allPRs = [];
+let statusChartInstance;
+let repoChartInstance;
+
+function escapeHtml(value) {
+    return String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#39;');
+}
+
+// Load data on page load
+window.addEventListener('DOMContentLoaded', loadData);
+
+async function loadData() {
+    try {
+        const res = await fetch('/github/stats');
+        if (!res.ok) {
+            const errData = await res.json().catch(() => ({ error: `Server error ${res.status}` }));
+            throw new Error(errData.error || `Server error ${res.status}`);
+        }
+        const data = await res.json();
+
+        allPRs = data.data.user.pullRequests.nodes;
+
+        // Extract username from the first PR or from the response
+        const username = extractUsername(data);
+        updateUserProfile(username);
+
+        // Hide loading, show content
+        document.getElementById('loadingState').classList.add('hidden');
+        document.getElementById('statsContainer').classList.remove('hidden');
+
+        populateRepos();
+        updateBranches();
+        updateStats();
+        renderCharts();
+        updateInsights();
+        updateBranchActivity();
+    } catch (error) {
+        console.error('Error loading data:', error);
+        const safeMessage = escapeHtml(error?.message || 'Unknown error');
+        document.getElementById('loadingState').innerHTML = `
+            <div class="text-center">
+                <span class="material-symbols-outlined text-6xl text-error mb-4">error</span>
+                <p class="text-error text-sm">Failed to load GitHub Analytics</p>
+                <p class="text-on-surface-variant text-xs mt-2">${safeMessage}</p>
+                <button onclick="loadData()" class="mt-4 px-6 py-2 bg-primary rounded-xl text-xs font-bold text-white hover:brightness-110 transition-all">
+                    Retry
+                </button>
+            </div>
+        `;
+    }
+}
+
+function extractUsername(data) {
+    // Try to get username from various possible locations in the response
+    if (data.data?.user?.login) {
+        return data.data.user.login;
+    }
+    // Fallback: extract from repository owner in first PR
+    if (allPRs.length > 0) {
+        const firstRepo = allPRs[0].repository.nameWithOwner;
+        return firstRepo.split('/')[0];
+    }
+    return 'Developer';
+}
+
+function updateUserProfile(username) {
+    // Update username
+    document.getElementById('userName').textContent = username;
+    
+    // Generate initials from username
+    const initials = username
+        .split(/[\s-_]/)
+        .map(part => part[0])
+        .join('')
+        .toUpperCase()
+        .slice(0, 2);
+    
+    document.getElementById('userInitials').textContent = initials;
+}
+
+function populateRepos() {
+    const repoSet = new Set();
+    allPRs.forEach(pr => repoSet.add(pr.repository.nameWithOwner));
+
+    const repoSelect = document.getElementById("repoSelect");
+    repoSelect.innerHTML = '<option value="ALL">All Repositories</option>';
+    repoSet.forEach(repo => {
+        const option = document.createElement('option');
+        option.value = repo;
+        option.textContent = repo;
+        repoSelect.appendChild(option);
+    });
+}
+
+function updateBranches() {
+    const selectedRepo = document.getElementById("repoSelect").value;
+    const branchSet = new Set();
+
+    allPRs.forEach(pr => {
+        if (selectedRepo === "ALL" || pr.repository.nameWithOwner === selectedRepo) {
+            branchSet.add(pr.baseRefName);
+        }
+    });
+
+    const branchSelect = document.getElementById("branchSelect");
+    branchSelect.innerHTML = '<option value="ALL">All Branches</option>';
+    branchSet.forEach(branch => {
+        const option = document.createElement('option');
+        option.value = branch;
+        option.textContent = branch;
+        branchSelect.appendChild(option);
+    });
+
+    updateStats();
+    renderCharts();
+    updateInsights();
+    updateBranchActivity();
+}
+
+function getFilteredPRs() {
+    const selectedRepo = document.getElementById("repoSelect").value;
+    const selectedBranch = document.getElementById("branchSelect").value;
+
+    return allPRs.filter(pr => {
+        const repoMatch = selectedRepo === "ALL" || pr.repository.nameWithOwner === selectedRepo;
+        const branchMatch = selectedBranch === "ALL" || pr.baseRefName === selectedBranch;
+        return repoMatch && branchMatch;
+    });
+}
+
+function updateStats() {
+    const prs = getFilteredPRs();
+    let merged = 0, open = 0, closed = 0;
+
+    prs.forEach(pr => {
+        if (pr.mergedAt) merged++;
+        else if (pr.state === "OPEN") open++;
+        else closed++;
+    });
+
+    const total = prs.length;
+    const mergeRate = total > 0 ? ((merged / total) * 100).toFixed(1) : 0;
+
+    document.getElementById('totalPRs').textContent = total;
+    document.getElementById('mergedPRs').textContent = merged;
+    document.getElementById('openPRs').textContent = open;
+    document.getElementById('mergeRate').textContent = mergeRate + '%';
+}
+
+function renderCharts() {
+    const prs = getFilteredPRs();
+    let statusCount = { Merged: 0, Closed: 0, Open: 0 };
+    let repoCount = {};
+
+    prs.forEach(pr => {
+        let status = pr.mergedAt ? "Merged" : (pr.state === "OPEN" ? "Open" : "Closed");
+        statusCount[status]++;
+
+        const repo = pr.repository.nameWithOwner;
+        repoCount[repo] = (repoCount[repo] || 0) + 1;
+    });
+
+    // Status Chart (Donut)
+    if (statusChartInstance) statusChartInstance.destroy();
+    
+    const statusCtx = document.getElementById('statusChart').getContext('2d');
+    statusChartInstance = new Chart(statusCtx, {
+        type: 'doughnut',
+        data: {
+            labels: ['Merged', 'Closed', 'Open'],
+            datasets: [{
+                data: [statusCount.Merged, statusCount.Closed, statusCount.Open],
+                backgroundColor: ['#58e7ab', '#adaaaa', '#5690ff'],
+                borderWidth: 0,
+                cutout: '70%'
+            }]
+        },
+        options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1a1919',
+                    titleColor: '#ffffff',
+                    bodyColor: '#adaaaa',
+                    borderColor: '#262626',
+                    borderWidth: 1,
+                    padding: 12,
+                    displayColors: false
+                }
+            }
+        }
+    });
+
+    // Update Legend
+    const total = prs.length;
+    document.getElementById('statusLegend').innerHTML = `
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-[#58e7ab]"></div>
+                <span class="text-xs text-on-surface-variant">Merged</span>
+            </div>
+            <span class="text-xs font-bold text-white">${((statusCount.Merged/total)*100).toFixed(0)}%</span>
+        </div>
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-[#adaaaa]"></div>
+                <span class="text-xs text-on-surface-variant">Closed</span>
+            </div>
+            <span class="text-xs font-bold text-white">${((statusCount.Closed/total)*100).toFixed(0)}%</span>
+        </div>
+        <div class="flex items-center justify-between">
+            <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-[#5690ff]"></div>
+                <span class="text-xs text-on-surface-variant">Open</span>
+            </div>
+            <span class="text-xs font-bold text-white">${((statusCount.Open/total)*100).toFixed(0)}%</span>
+        </div>
+    `;
+
+    // Repo Chart (Horizontal Bar)
+    if (repoChartInstance) repoChartInstance.destroy();
+    
+    const repoCtx = document.getElementById('repoChart').getContext('2d');
+    repoChartInstance = new Chart(repoCtx, {
+        type: 'bar',
+        data: {
+            labels: Object.keys(repoCount),
+            datasets: [{
+                label: 'PR Count',
+                data: Object.values(repoCount),
+                backgroundColor: '#5690ff',
+                borderRadius: 6,
+                barThickness: 24
+            }]
+        },
+        options: {
+            indexAxis: 'y',
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+                legend: { display: false },
+                tooltip: {
+                    backgroundColor: '#1a1919',
+                    titleColor: '#ffffff',
+                    bodyColor: '#adaaaa',
+                    borderColor: '#262626',
+                    borderWidth: 1,
+                    padding: 12
+                }
+            },
+            scales: {
+                x: {
+                    grid: { color: '#262626', drawBorder: false },
+                    ticks: { color: '#adaaaa', font: { size: 10 } }
+                },
+                y: {
+                    grid: { display: false },
+                    ticks: { color: '#ffffff', font: { size: 11, weight: '500' } }
+                }
+            }
+        }
+    });
+}
+
+function updateInsights() {
+    const prs = getFilteredPRs();
+    
+    // Most active repository
+    let repoCount = {};
+    prs.forEach(pr => {
+        const repo = pr.repository.nameWithOwner;
+        repoCount[repo] = (repoCount[repo] || 0) + 1;
+    });
+    const mostActiveRepo = Object.keys(repoCount).sort((a, b) => repoCount[b] - repoCount[a])[0] || '-';
+    document.getElementById('mostActiveRepo').textContent = mostActiveRepo;
+
+    // Most active branch
+    let branchCount = {};
+    prs.forEach(pr => {
+        branchCount[pr.baseRefName] = (branchCount[pr.baseRefName] || 0) + 1;
+    });
+    const mostActiveBranch = Object.keys(branchCount).sort((a, b) => branchCount[b] - branchCount[a])[0] || '-';
+    document.getElementById('mostActiveBranch').textContent = mostActiveBranch;
+
+    // Merge success rate
+    let merged = prs.filter(pr => pr.mergedAt).length;
+    const total = prs.length;
+    const rate = total > 0 ? ((merged / total) * 100).toFixed(1) : 0;
+    document.getElementById('mergeSuccessRate').innerHTML = `${rate}% <span class="text-[10px] text-secondary ml-1">+0.5%</span>`;
+}
+
+function updateBranchActivity() {
+    const selectedRepo = document.getElementById("repoSelect").value;
+    const prs = allPRs.filter(pr => selectedRepo === "ALL" || pr.repository.nameWithOwner === selectedRepo);
+    
+    let branchCount = {};
+    prs.forEach(pr => {
+        branchCount[pr.baseRefName] = (branchCount[pr.baseRefName] || 0) + 1;
+    });
+
+    const sortedBranches = Object.entries(branchCount)
+        .sort((a, b) => b[1] - a[1])
+        .slice(0, 6);
+
+    const maxCount = sortedBranches[0]?.[1] || 1;
+
+    const html = sortedBranches.map(([branch, count]) => {
+        const percentage = (count / maxCount) * 100;
+        const safeBranch = escapeHtml(branch);
+        return `
+            <div class="flex items-center gap-4">
+                <span class="w-24 text-[10px] text-on-surface-variant truncate">${safeBranch}</span>
+                <div class="flex-1 h-6 bg-primary/20 rounded-md border border-primary/20 relative group overflow-hidden">
+                    <div class="absolute inset-0 bg-primary/40" style="width: ${percentage}%"></div>
+                    <span class="absolute inset-y-0 right-2 flex items-center text-[10px] font-bold text-white">${count} PRs</span>
+                </div>
+            </div>
+        `;
+    }).join('');
+
+    document.getElementById('branchActivity').innerHTML = html || '<p class="text-xs text-on-surface-variant">No branch data available</p>';
+}
+</script>
+
+</body>
+</html>
