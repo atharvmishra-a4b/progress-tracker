@@ -294,12 +294,23 @@ function escapeHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
+function getApiKeyHeaders() {
+    const storedApiKey = localStorage.getItem('internalTrackerApiKey');
+    const apiKey = storedApiKey;
+
+    if (!apiKey) {
+        return {};
+    }
+
+    return { 'X-Internal-API-Key': apiKey };
+}
+
 // Load data on page load
 window.addEventListener('DOMContentLoaded', loadData);
 
 async function loadData() {
     try {
-        const res = await fetch('/github/stats');
+        const res = await fetch('/github/stats', { headers: getApiKeyHeaders() });
         if (!res.ok) {
             const errData = await res.json().catch(() => ({ error: `Server error ${res.status}` }));
             throw new Error(errData.error || `Server error ${res.status}`);

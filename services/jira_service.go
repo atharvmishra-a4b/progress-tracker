@@ -43,7 +43,6 @@ type Issue struct {
 	} `json:"fields"`
 }
 
-
 func FetchJiraIssues(email string, apiToken string, baseURL string) (*JiraGraphQLResponse, error) {
 	jql := "assignee=currentUser() order by created desc"
 
@@ -71,7 +70,6 @@ func FetchJiraIssues(email string, apiToken string, baseURL string) (*JiraGraphQ
 
 	return response, nil
 }
-
 
 func makeJiraRequest(url string, email string, apiToken string) ([]byte, error) {
 	req, err := http.NewRequest("GET", url, nil)

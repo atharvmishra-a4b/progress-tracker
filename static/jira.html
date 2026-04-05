@@ -324,6 +324,17 @@ function escapeHtml(value) {
         .replace(/'/g, '&#39;');
 }
 
+function getApiKeyHeaders() {
+    const storedApiKey = localStorage.getItem('internalTrackerApiKey');
+    const apiKey = storedApiKey;
+
+    if (!apiKey) {
+        return {};
+    }
+
+    return { 'X-Internal-API-Key': apiKey };
+}
+
 // Status color mapping
 const statusColors = {
     'Done': '#58e7ab',
@@ -358,7 +369,7 @@ window.addEventListener('DOMContentLoaded', loadData);
 
 async function loadData() {
     try {
-        const res = await fetch('/jira/stats');
+        const res = await fetch('/jira/stats', { headers: getApiKeyHeaders() });
         if (!res.ok) {
             const errData = await res.json().catch(() => ({ error: `Server error ${res.status}` }));
             throw new Error(errData.error || `Server error ${res.status}`);
