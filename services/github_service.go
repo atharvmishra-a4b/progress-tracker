@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 	"time"
 )
 
@@ -94,6 +95,15 @@ func FetchPRs(username string, token string) (*GraphQLResponse, error) {
 	if len(gqlResp.Errors) > 0 {
 		return nil, fmt.Errorf("GitHub GraphQL error: %s", gqlResp.Errors[0].Message)
 	}
+
+	// Filter to only include repositories containing "dev-a4b"
+	filtered := gqlResp.Data.User.PullRequests.Nodes[:0]
+	for _, pr := range gqlResp.Data.User.PullRequests.Nodes {
+		if strings.Contains(pr.Repository.NameWithOwner, "dev-a4b") {
+			filtered = append(filtered, pr)
+		}
+	}
+	gqlResp.Data.User.PullRequests.Nodes = filtered
 
 	return &gqlResp, nil
 }
